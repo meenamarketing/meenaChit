@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Create Group – Meena Chitfunds</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #121212;
+      color: #fff;
+      padding-bottom: 100px;
+    }
+    header {
+      background: #1f1f1f;
+      padding: 1rem;
+      text-align: center;
+      font-size: 1.4rem;
+      font-weight: bold;
+      color: #00bcd4;
+    }
+    nav {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-around;
+      background: #1c1c1c;
+      padding: 0.5rem;
+      border-bottom: 1px solid #333;
+    }
+    nav button {
+      flex: 1 1 45%;
+      margin: 0.25rem;
+      padding: 0.75rem;
+      border: none;
+      background: #2a2a2a;
+      color: #ccc;
+      font-weight: 500;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    nav button:hover {
+      background: #333;
+      color: #00e6e6;
+    }
+    .container {
+      padding: 1rem;
+    }
+    label {
+      display: block;
+      margin: 1rem 0 0.5rem;
+      font-weight: 500;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 0.8rem;
+      border-radius: 8px;
+      background: #1e1e1e;
+      border: 1px solid #333;
+      color: #fff;
+    }
+    .amount-inputs input {
+      margin-top: 0.5rem;
+    }
+    button.save-btn {
+      margin-top: 1.5rem;
+      width: 100%;
+      padding: 1rem;
+      background: #2a2a2a;
+      color: #00e6e6;
+      font-weight: bold;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    button.save-btn:hover {
+      background-color: #333;
+    }
+    footer {
+      text-align: center;
+      padding: 1rem;
+      background: #1c1c1c;
+      color: #888;
+      position: fixed;
+      width: 100%;
+      bottom: 0;
+    }
+  </style>
+</head>
+<body>
+
+  <header>Create New Group</header>
+
+  <nav>
+    <button onclick="window.location='index.html'">🏠 Dashboard</button>
+    <button onclick="window.location='add-member.html'">👤 Add Member</button>
+    <button onclick="window.location='add-payment.html'">💸 Add Payment</button>
+    <button onclick="window.location='report.html'">📊 Reports</button>
+  </nav>
+
+  <div class="container">
+    <label>Group Name</label>
+    <input type="text" id="groupName" placeholder="e.g., April 2025 Chit" />
+
+    <label>Start Month</label>
+    <input type="month" id="startMonth" />
+
+    <label>Number of Months</label>
+    <input type="number" id="monthsCount" min="1" max="60" placeholder="e.g., 20" oninput="generateMonthlyInputs()" />
+
+    <div class="amount-inputs" id="monthlyInputs"></div>
+
+    <label>Remarks</label>
+    <textarea id="remarks" rows="3" placeholder="Optional notes about this group..."></textarea>
+
+    <button class="save-btn" onclick="createGroup()">✅ Save Group</button>
+  </div>
+
+  <footer>Powered by Goorac · Meena Chitfunds</footer>
+
+  <script>
+    function generateMonthlyInputs() {
+      const count = parseInt(document.getElementById('monthsCount').value);
+      const container = document.getElementById('monthlyInputs');
+      container.innerHTML = '';
+      for (let i = 1; i <= count; i++) {
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.placeholder = `Month ${i} Amount (₹)`;
+        input.id = `monthAmount_${i}`;
+        input.required = true;
+        container.appendChild(input);
+      }
+    }
+
+    function createGroup() {
+      const name = document.getElementById('groupName').value.trim();
+      const startMonth = document.getElementById('startMonth').value;
+      const count = parseInt(document.getElementById('monthsCount').value);
+      const remarks = document.getElementById('remarks').value.trim();
+
+      if (!name || !startMonth || !count) {
+        alert('❌ Fill all required fields.');
+        return;
+      }
+
+      const monthlyAmounts = [];
+      for (let i = 1; i <= count; i++) {
+        const val = document.getElementById(`monthAmount_${i}`).value;
+        if (!val || parseInt(val) <= 0) {
+          alert(`❌ Enter valid amount for Month ${i}`);
+          return;
+        }
+        monthlyAmounts.push(parseInt(val));
+      }
+
+      const newGroup = {
+        id: 'group_' + Date.now(),
+        name,
+        startMonth,
+        remarks,
+        monthsCount: count,
+        monthlyAmounts,
+        members: [],
+        chitsGiven: []
+      };
+
+      let data = JSON.parse(localStorage.getItem('chitData') || '{"groups": []}');
+      data.groups.push(newGroup);
+      localStorage.setItem('chitData', JSON.stringify(data));
+
+      alert('✅ Group created!');
+      window.location.href = "index.html";
+    }
+  </script>
+
+</body>
+</html>

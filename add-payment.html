@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Add Payment – Meena Chitfunds</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #121212;
+      color: #fff;
+      margin: 0;
+      padding-bottom: 100px;
+    }
+    header {
+      background: #1f1f1f;
+      padding: 1rem;
+      text-align: center;
+      font-size: 1.4rem;
+      color: #00bcd4;
+    }
+    nav {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-around;
+      background: #1c1c1c;
+      padding: 0.5rem;
+      border-bottom: 1px solid #333;
+    }
+    nav button {
+      flex: 1 1 45%;
+      margin: 0.25rem;
+      padding: 0.75rem;
+      border: none;
+      background: #2a2a2a;
+      color: #ccc;
+      font-weight: 500;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    nav button:hover {
+      background: #333;
+      color: #00e6e6;
+    }
+    .container {
+      padding: 1rem;
+    }
+    label {
+      display: block;
+      margin-top: 1rem;
+      margin-bottom: 0.5rem;
+    }
+    select, input {
+      width: 100%;
+      padding: 0.8rem;
+      border-radius: 8px;
+      background: #1e1e1e;
+      border: 1px solid #333;
+      color: #fff;
+    }
+    datalist option {
+      color: #000;
+    }
+    button.save-btn {
+      margin-top: 1.5rem;
+      width: 100%;
+      padding: 1rem;
+      background: #2a2a2a;
+      color: #00e6e6;
+      font-weight: bold;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    footer {
+      text-align: center;
+      padding: 1rem;
+      background: #1c1c1c;
+      color: #888;
+      position: fixed;
+      width: 100%;
+      bottom: 0;
+    }
+  </style>
+</head>
+<body>
+
+  <header>Add Member Payment</header>
+
+  <nav>
+    <button onclick="window.location='index.html'">🏠 Dashboard</button>
+    <button onclick="window.location='add-group.html'">➕ Add Group</button>
+    <button onclick="window.location='add-member.html'">👤 Add Member</button>
+    <button onclick="window.location='report.html'">📊 Reports</button>
+  </nav>
+
+  <div class="container">
+    <label>Select Group</label>
+    <select id="groupSelect" onchange="populateMembers()">
+      <option value="">-- Select Group --</option>
+    </select>
+
+    <label>Search Member</label>
+    <input type="text" id="memberSearch" list="memberList" placeholder="Start typing name..." oninput="updateSuggestions()" onblur="setDue()" />
+    <datalist id="memberList"></datalist>
+
+    <label>Auto Due Number</label>
+    <select id="dueSelect" disabled>
+      <option value="">-- Auto Due --</option>
+    </select>
+
+    <label>Amount</label>
+    <input type="number" id="amount" placeholder="e.g., 5000" />
+
+    <label>Payment Date</label>
+    <input type="date" id="payDate" />
+
+    <button class="save-btn" onclick="savePayment()">✅ Save Payment</button>
+  </div>
+
+  <footer>Powered by Goorac · Meena Chitfunds</footer>
+
+  <script>
+    let data = { groups: [] };
+    let currentGroup = null;
+
+    function loadData() {
+      const raw = localStorage.getItem('chitData');
+      if (raw) {
+        data = JSON.parse(raw);
+        const groupSelect = document.getElementById('groupSelect');
+        groupSelect.innerHTML = '<option value="">-- Select Group --</option>';
+        data.groups.forEach(group => {
+          const opt = document.createElement('option');
+          opt.value = group.id;
+          opt.textContent = group.name;
+          groupSelect.appendChild(opt);
+        });
+      }
+    }
+
+    function populateMembers() {
+      const groupId = document.getElementById('groupSelect').value;
+      currentGroup = data.groups.find(g => g.id === groupId);
+      document.getElementById('memberList').innerHTML = '';
+      document.getElementById('memberSearch').value = '';
+      document.getElementById('dueSelect').innerHTML = '<option value="">-- Auto Due --</option>';
+    }
+
+    function updateSuggestions() {
+      const input = document.getElementById('memberSearch').value.toLowerCase();
+      const datalist = document.getElementById('memberList');
+      datalist.innerHTML = "";
+
+      if (!currentGroup || !currentGroup.members) return;
+
+      const matches = currentGroup.members.filter(m => m.name.toLowerCase().includes(input));
+      matches.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m.name;
+        datalist.appendChild(opt);
+      });
+    }
+
+    function setDue() {
+      const memberName = document.getElementById('memberSearch').value.trim().toLowerCase();
+      const dueSelect = document.getElementById('dueSelect');
+      dueSelect.innerHTML = '<option value="">-- Auto Due --</option>';
+
+      if (!currentGroup || !currentGroup.members) return;
+
+      const member = currentGroup.members.find(m => m.name.toLowerCase() === memberName);
+      if (!member) return;
+
+      if (!member.payments) member.payments = [];
+      const duesPaid = member.payments.map(p => p.due);
+      const lastDue = duesPaid.length > 0 ? Math.max(...duesPaid) : 0;
+      const nextDue = lastDue + 1;
+
+      const opt = document.createElement('option');
+      opt.value = nextDue;
+      opt.textContent = `Due #${nextDue}`;
+      dueSelect.appendChild(opt);
+      dueSelect.value = nextDue;
+    }
+
+    function savePayment() {
+      const groupId = document.getElementById('groupSelect').value;
+      const memberName = document.getElementById('memberSearch').value.trim().toLowerCase();
+      const due = parseInt(document.getElementById('dueSelect').value);
+      const amount = parseInt(document.getElementById('amount').value);
+      const date = document.getElementById('payDate').value;
+
+      if (!groupId || !memberName || !due || !amount || !date) {
+        alert("❌ Fill all fields.");
+        return;
+      }
+
+      const group = data.groups.find(g => g.id === groupId);
+      const member = group.members.find(m => m.name.toLowerCase() === memberName);
+      if (!member) {
+        alert("❌ Member not found in group.");
+        return;
+      }
+
+      if (!member.payments) member.payments = [];
+      if (member.payments.some(p => p.due === due)) {
+        alert("❗ This due already paid.");
+        return;
+      }
+
+      member.payments.push({ due, amount, date });
+      localStorage.setItem('chitData', JSON.stringify(data));
+      alert("✅ Payment saved!");
+      window.location.href = "index.html";
+    }
+
+    loadData();
+  </script>
+
+</body>
+</html>
+    

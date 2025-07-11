@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Group Overview – Meena Chitfunds</title>
+  <style>
+    body {
+      background: #121212;
+      color: #fff;
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding-bottom: 100px;
+    }
+    header {
+      background: #1f1f1f;
+      padding: 1rem;
+      text-align: center;
+      font-size: 1.4rem;
+      color: #00bcd4;
+    }
+    .container {
+      padding: 1rem;
+    }
+    select, input, button {
+      width: 100%;
+      margin-top: 1rem;
+      padding: 0.75rem;
+      border-radius: 8px;
+      border: 1px solid #333;
+      background: #1e1e1e;
+      color: #fff;
+    }
+    button {
+      background: #2a2a2a;
+      color: #00e6e6;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #333;
+    }
+    table {
+      width: 100%;
+      margin-top: 1rem;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 0.7rem;
+      border: 1px solid #333;
+      text-align: left;
+    }
+    th {
+      background: #1f1f1f;
+      color: #00e6e6;
+    }
+    .summary {
+      background: #1a1a1a;
+      padding: 1rem;
+      border-radius: 10px;
+      margin-top: 1rem;
+    }
+    .summary h3 {
+      margin-bottom: 0.5rem;
+      color: #00e6e6;
+    }
+    .summary p {
+      margin: 0.2rem 0;
+    }
+  </style>
+</head>
+<body>
+  <header>📚 Group Overview</header>
+  <div class="container">
+    <label>Select Group</label>
+    <select id="groupSelect">
+      <option value="">-- Select Group --</option>
+    </select>
+
+    <button onclick="showGroupDetails()">📊 View Group Details</button>
+
+    <div class="summary" id="groupSummary" style="display: none">
+      <h3>📌 Group Summary</h3>
+      <p><strong>Total Members:</strong> <span id="totalMembers"></span></p>
+      <table id="monthlyTable">
+        <thead>
+          <tr>
+            <th>Month</th>
+            <th>Amount</th>
+            <th>Total Collected</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <table id="groupDetails">
+      <thead>
+        <tr>
+          <th>Member Name</th>
+          <th>Phone</th>
+          <th>Place</th>
+          <th>Last Paid Due</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script>
+    let data = { groups: [] };
+
+    function loadGroups() {
+      const raw = localStorage.getItem('chitData');
+      if (raw) {
+        data = JSON.parse(raw);
+        const select = document.getElementById('groupSelect');
+        data.groups.forEach(group => {
+          const option = document.createElement('option');
+          option.value = group.id;
+          option.textContent = group.name;
+          select.appendChild(option);
+        });
+      }
+    }
+
+    function showGroupDetails() {
+      const groupId = document.getElementById('groupSelect').value;
+      const tbody = document.querySelector('#groupDetails tbody');
+      const monthlyTableBody = document.querySelector('#monthlyTable tbody');
+      const summaryBox = document.getElementById('groupSummary');
+      const totalMembers = document.getElementById('totalMembers');
+      tbody.innerHTML = '';
+      monthlyTableBody.innerHTML = '';
+      summaryBox.style.display = 'none';
+
+      const group = data.groups.find(g => g.id === groupId);
+      if (!group || !group.members) return;
+
+      totalMembers.textContent = group.members.length;
+      summaryBox.style.display = 'block';
+
+      if (Array.isArray(group.monthlyAmounts)) {
+        group.monthlyAmounts.forEach((amt, i) => {
+          let collected = 0;
+          group.members.forEach(member => {
+            if (member.payments) {
+              member.payments.forEach(payment => {
+                if (parseInt(payment.due) === i + 1) {
+                  collected += parseInt(payment.amount || amt);
+                }
+              });
+            }
+          });
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>Month ${i + 1}</td>
+            <td>₹${amt}</td>
+            <td>₹${collected}</td>
+          `;
+          monthlyTableBody.appendChild(row);
+        });
+      }
+
+      group.members.forEach(member => {
+        let lastDue = '-';
+        if (Array.isArray(member.payments) && member.payments.length > 0) {
+          const dues = member.payments
+            .map(p => Number(p.due))
+            .filter(n => Number.isInteger(n));
+          if (dues.length > 0) {
+            lastDue = Math.max(...dues);
+          }
+        }
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${member.name}</td>
+          <td>${member.phone || '-'}</td>
+          <td>${member.place || '-'}</td>
+          <td>${lastDue}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    loadGroups();
+  </script>
+</body>
+</html>

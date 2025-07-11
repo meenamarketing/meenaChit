@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chit Status – Meena Chitfunds</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #121212;
+      color: #fff;
+      margin: 0;
+      padding-bottom: 100px;
+    }
+    header {
+      background: #1f1f1f;
+      padding: 1rem;
+      text-align: center;
+      font-size: 1.4rem;
+      font-weight: bold;
+      color: #00bcd4;
+    }
+    nav {
+      display: flex;
+      justify-content: space-around;
+      background: #1c1c1c;
+      padding: 0.5rem;
+    }
+    nav button {
+      padding: 0.6rem;
+      border: none;
+      border-radius: 5px;
+      background-color: #2a2a2a;
+      color: #ccc;
+      cursor: pointer;
+    }
+    nav button:hover {
+      background-color: #333;
+      color: #00e6e6;
+    }
+    .container {
+      padding: 1rem;
+    }
+    label, select, input {
+      display: block;
+      width: 100%;
+      margin: 1rem 0 0.5rem;
+    }
+    select, input {
+      padding: 0.8rem;
+      background: #1e1e1e;
+      border: 1px solid #333;
+      border-radius: 8px;
+      color: #fff;
+    }
+    table {
+      width: 100%;
+      margin-top: 1rem;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 0.7rem;
+      border: 1px solid #333;
+      text-align: left;
+    }
+    th {
+      background: #1f1f1f;
+      color: #00e6e6;
+    }
+    button.save-btn {
+      background-color: #2a2a2a;
+      color: #00e6e6;
+      border: none;
+      padding: 0.8rem;
+      border-radius: 8px;
+      width: 100%;
+      margin-top: 1rem;
+      cursor: pointer;
+    }
+    button.save-btn:hover {
+      background-color: #333;
+    }
+    .suggestions {
+      background: #1c1c1c;
+      border: 1px solid #333;
+      border-radius: 6px;
+      max-height: 150px;
+      overflow-y: auto;
+      margin-top: -0.5rem;
+      position: absolute;
+      width: calc(100% - 2rem);
+      z-index: 10;
+    }
+    .suggestions div {
+      padding: 0.5rem;
+      cursor: pointer;
+    }
+    .suggestions div:hover {
+      background-color: #333;
+    }
+    footer {
+      text-align: center;
+      padding: 1rem;
+      background: #1c1c1c;
+      color: #888;
+      position: fixed;
+      width: 100%;
+      bottom: 0;
+    }
+  </style>
+</head>
+<body>
+  <header>📜 Chit Holders Status</header>
+  <nav>
+    <button onclick="location.href='index.html'">🏠 Dashboard</button>
+    <button onclick="location.href='add-group.html'">➕ Add Group</button>
+    <button onclick="location.href='add-payment.html'">💸 Add Payment</button>
+    <button onclick="location.href='report.html'">📊 Reports</button>
+  </nav>
+
+  <div class="container">
+    <label>Select Group</label>
+    <select id="groupSelect" onchange="renderChitStatus(); updateSuggestions();">
+      <option value="">-- Select Group --</option>
+    </select>
+
+    <label>Month</label>
+    <input type="number" id="chitMonth" min="1" placeholder="e.g., 1 for January" />
+
+    <label>Search & Select Member(s)</label>
+    <input type="text" id="memberSearch" placeholder="Type to search member...">
+    <div id="suggestions" class="suggestions"></div>
+
+    <label>Selected Members</label>
+    <ul id="selectedMembers"></ul>
+
+    <label>Amount Given</label>
+    <input type="number" id="chitAmount" placeholder="e.g., 100000" />
+
+    <label>Given Date</label>
+    <input type="date" id="chitDate" />
+
+    <button class="save-btn" onclick="saveChitEntry()">➕ Save Chit Entry</button>
+
+    <table id="chitTable">
+      <thead>
+        <tr>
+          <th>Month</th>
+          <th>Chit Holder(s)</th>
+          <th>Amount</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <footer>Powered by Goorac · Meena Chitfunds</footer>
+
+  <script>
+    let data = { groups: [] };
+    let selectedGroup = null;
+    let selectedMembers = [];
+
+    function loadGroups() {
+      const raw = localStorage.getItem('chitData');
+      if (raw) {
+        data = JSON.parse(raw);
+        const groupSelect = document.getElementById('groupSelect');
+        data.groups.forEach(group => {
+          const option = document.createElement('option');
+          option.value = group.id;
+          option.textContent = group.name;
+          groupSelect.appendChild(option);
+        });
+      }
+    }
+
+    function renderChitStatus() {
+      const groupId = document.getElementById('groupSelect').value;
+      const tbody = document.querySelector('#chitTable tbody');
+      tbody.innerHTML = '';
+
+      selectedGroup = data.groups.find(g => g.id === groupId);
+      selectedMembers = [];
+      updateSelectedList();
+
+      if (!selectedGroup) return;
+      if (!selectedGroup.chits) selectedGroup.chits = [];
+
+      selectedGroup.chits.forEach((chit, i) => {
+        const tr = document.createElement('tr');
+        const holders = chit.members.map(id => {
+          const m = selectedGroup.members.find(mem => mem.id === id);
+          return m ? m.name : 'Unknown';
+        }).join(', ');
+        tr.innerHTML = `
+          <td>${i + 1}</td>
+          <td>${holders}</td>
+          <td>₹${chit.amount}</td>
+          <td>${chit.date || '-'}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function updateSelectedList() {
+      const ul = document.getElementById('selectedMembers');
+      ul.innerHTML = '';
+      selectedMembers.forEach(id => {
+        const member = selectedGroup.members.find(m => m.id === id);
+        if (member) {
+          const li = document.createElement('li');
+          li.textContent = member.name;
+          ul.appendChild(li);
+        }
+      });
+    }
+
+    document.getElementById('memberSearch').addEventListener('input', function () {
+      const val = this.value.toLowerCase();
+      updateSuggestions(val);
+    });
+
+    function updateSuggestions(val = '') {
+      const suggestions = document.getElementById('suggestions');
+      suggestions.innerHTML = '';
+
+      if (!selectedGroup || !val) return;
+
+      selectedGroup.members.forEach(member => {
+        if (member.name.toLowerCase().includes(val) && !selectedMembers.includes(member.id)) {
+          const div = document.createElement('div');
+          div.textContent = member.name;
+          div.onclick = () => {
+            selectedMembers.push(member.id);
+            updateSelectedList();
+            document.getElementById('memberSearch').value = '';
+            suggestions.innerHTML = '';
+          };
+          suggestions.appendChild(div);
+        }
+      });
+    }
+
+    function saveChitEntry() {
+      const groupId = document.getElementById('groupSelect').value;
+      const month = parseInt(document.getElementById('chitMonth').value);
+      const amount = parseInt(document.getElementById('chitAmount').value);
+      const date = document.getElementById('chitDate').value;
+
+      if (!groupId || !month || selectedMembers.length === 0 || !amount || !date) {
+        alert("❌ Please fill all chit details.");
+        return;
+      }
+
+      const group = data.groups.find(g => g.id === groupId);
+      if (!group.chits) group.chits = [];
+
+      group.chits[month - 1] = {
+        members: selectedMembers,
+        amount,
+        date
+      };
+
+      localStorage.setItem('chitData', JSON.stringify(data));
+      alert("✅ Chit saved successfully.");
+      renderChitStatus();
+    }
+
+    loadGroups();
+  </script>
+</body>
+</html>
