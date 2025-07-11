@@ -154,7 +154,7 @@
     function updateSuggestions() {
       const input = document.getElementById('memberSearch').value.toLowerCase();
       const datalist = document.getElementById('memberList');
-      datalist.innerHTML = "";
+      datalist.innerHTML = '';
 
       if (!currentGroup || !currentGroup.members) return;
 
@@ -162,10 +162,14 @@
         m.name && m.name.toLowerCase().includes(input)
       );
 
+      const uniqueNames = new Set();
       matches.forEach(m => {
-        const opt = document.createElement('option');
-        opt.value = m.name;
-        datalist.appendChild(opt);
+        if (!uniqueNames.has(m.name.toLowerCase())) {
+          const opt = document.createElement('option');
+          opt.value = m.name;
+          datalist.appendChild(opt);
+          uniqueNames.add(m.name.toLowerCase());
+        }
       });
     }
 
