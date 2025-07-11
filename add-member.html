@@ -161,6 +161,17 @@
         payments: []
       };
 
+      if (duesPaid > 0 && amountPaid > 0) {
+        const perDueAmount = Math.floor(amountPaid / duesPaid);
+        for (let i = 1; i <= duesPaid; i++) {
+          member.payments.push({
+            due: i,
+            amount: perDueAmount,
+            date: new Date().toISOString().split('T')[0]
+          });
+        }
+      }
+
       const group = data.groups.find(g => g.id === groupId);
       if (!group.members) group.members = [];
       group.members.push(member);
