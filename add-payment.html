@@ -96,12 +96,14 @@
 
   <div class="container">
     <label>Select Group</label>
-    <select id="groupSelect" onchange="populateMembers()">
+    <select id="groupSelect" onchange="populateMembers(); updateSuggestions();">
       <option value="">-- Select Group --</option>
     </select>
 
     <label>Search Member</label>
-    <input type="text" id="memberSearch" list="memberList" placeholder="Start typing name..." oninput="updateSuggestions()" onblur="setDue()" />
+    <input type="text" id="memberSearch" list="memberList"
+           placeholder="Start typing name..."
+           oninput="updateSuggestions()" onfocus="updateSuggestions()" onblur="setDue()" />
     <datalist id="memberList"></datalist>
 
     <label>Auto Due Number</label>
@@ -154,7 +156,10 @@
 
       if (!currentGroup || !currentGroup.members) return;
 
-      const matches = currentGroup.members.filter(m => m.name.toLowerCase().includes(input));
+      const matches = currentGroup.members.filter(m =>
+        m.name.toLowerCase().includes(input)
+      );
+
       matches.forEach(m => {
         const opt = document.createElement('option');
         opt.value = m.name;
@@ -220,4 +225,3 @@
 
 </body>
 </html>
-    
