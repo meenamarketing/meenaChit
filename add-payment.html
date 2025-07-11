@@ -102,8 +102,10 @@
 
     <label>Search Member</label>
     <input type="text" id="memberSearch" list="memberList"
-           placeholder="Start typing name..."
-           oninput="updateSuggestions()" onfocus="updateSuggestions()" onblur="setDue()" />
+      placeholder="Start typing name..."
+      oninput="updateSuggestions()"
+      onfocus="updateSuggestions()"
+      onblur="setTimeout(setDue, 200)" />
     <datalist id="memberList"></datalist>
 
     <label>Auto Due Number</label>
@@ -157,7 +159,7 @@
       if (!currentGroup || !currentGroup.members) return;
 
       const matches = currentGroup.members.filter(m =>
-        m.name.toLowerCase().includes(input)
+        m.name && m.name.toLowerCase().includes(input)
       );
 
       matches.forEach(m => {
