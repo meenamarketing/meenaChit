@@ -58,9 +58,6 @@
       border: 1px solid #333;
       color: #fff;
     }
-    datalist option {
-      color: #000;
-    }
     button.save-btn {
       margin-top: 1.5rem;
       width: 100%;
@@ -96,17 +93,14 @@
 
   <div class="container">
     <label>Select Group</label>
-    <select id="groupSelect" onchange="populateMembers(); updateSuggestions();">
+    <select id="groupSelect" onchange="populateMembers();">
       <option value="">-- Select Group --</option>
     </select>
 
-    <label>Search Member</label>
-    <input type="text" id="memberSearch" list="memberList"
-      placeholder="Start typing name..."
-      oninput="updateSuggestions()"
-      onfocus="updateSuggestions()"
-      onblur="setTimeout(setDue, 200)" />
-    <datalist id="memberList"></datalist>
+    <label>Select Member</label>
+    <select id="memberSelect" onchange="setDue()">
+      <option value="">-- Select Member --</option>
+    </select>
 
     <label>Auto Due Number</label>
     <select id="dueSelect" disabled>
@@ -146,35 +140,24 @@
     function populateMembers() {
       const groupId = document.getElementById('groupSelect').value;
       currentGroup = data.groups.find(g => g.id === groupId);
-      document.getElementById('memberList').innerHTML = '';
-      document.getElementById('memberSearch').value = '';
-      document.getElementById('dueSelect').innerHTML = '<option value="">-- Auto Due --</option>';
-    }
+      const memberSelect = document.getElementById('memberSelect');
+      const dueSelect = document.getElementById('dueSelect');
 
-    function updateSuggestions() {
-      const input = document.getElementById('memberSearch').value.toLowerCase();
-      const datalist = document.getElementById('memberList');
-      datalist.innerHTML = '';
+      memberSelect.innerHTML = '<option value="">-- Select Member --</option>';
+      dueSelect.innerHTML = '<option value="">-- Auto Due --</option>';
 
       if (!currentGroup || !currentGroup.members) return;
 
-      const matches = currentGroup.members.filter(m =>
-        m.name && m.name.toLowerCase().includes(input)
-      );
-
-      const uniqueNames = new Set();
-      matches.forEach(m => {
-        if (!uniqueNames.has(m.name.toLowerCase())) {
-          const opt = document.createElement('option');
-          opt.value = m.name;
-          datalist.appendChild(opt);
-          uniqueNames.add(m.name.toLowerCase());
-        }
+      currentGroup.members.forEach(member => {
+        const opt = document.createElement('option');
+        opt.value = member.name;
+        opt.textContent = member.name;
+        memberSelect.appendChild(opt);
       });
     }
 
     function setDue() {
-      const memberName = document.getElementById('memberSearch').value.trim().toLowerCase();
+      const memberName = document.getElementById('memberSelect').value.toLowerCase();
       const dueSelect = document.getElementById('dueSelect');
       dueSelect.innerHTML = '<option value="">-- Auto Due --</option>';
 
@@ -184,6 +167,7 @@
       if (!member) return;
 
       if (!member.payments) member.payments = [];
+
       const duesPaid = member.payments.map(p => p.due);
       const lastDue = duesPaid.length > 0 ? Math.max(...duesPaid) : 0;
       const nextDue = lastDue + 1;
@@ -197,7 +181,7 @@
 
     function savePayment() {
       const groupId = document.getElementById('groupSelect').value;
-      const memberName = document.getElementById('memberSearch').value.trim().toLowerCase();
+      const memberName = document.getElementById('memberSelect').value.trim().toLowerCase();
       const due = parseInt(document.getElementById('dueSelect').value);
       const amount = parseInt(document.getElementById('amount').value);
       const date = document.getElementById('payDate').value;
