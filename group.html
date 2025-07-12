@@ -99,7 +99,7 @@
         <thead>
           <tr>
             <th>Due</th>
-            <th>Member</th>
+            <th>Members</th>
             <th>Amount</th>
             <th>Date</th>
           </tr>
@@ -181,22 +181,29 @@
         });
       }
 
-      // Chits Given Table
+      // Chits Given Table – multiple member support
       if (Array.isArray(group.chitsGiven)) {
         group.chitsGiven.forEach(chit => {
-          const member = group.members.find(m => m.id === chit.memberId);
+          let memberNames = '—';
+          if (Array.isArray(chit.members)) {
+            const names = chit.members.map(id => {
+              const m = group.members.find(mem => mem.id === id);
+              return m ? m.name : 'Unknown';
+            });
+            memberNames = names.join(', ');
+          }
           const row = document.createElement('tr');
           row.innerHTML = `
-            <td>Due ${chit.due}</td>
-            <td>${member ? member.name : 'Unknown'}</td>
+            <td>${chit.due}</td>
+            <td>${memberNames}</td>
             <td>₹${chit.amount}</td>
-            <td>${chit.date}</td>
+            <td>${chit.date || '-'}</td>
           `;
           chitBody.appendChild(row);
         });
       }
 
-      // Member Last Paid Due Table
+      // Member Last Paid Due
       group.members.forEach(member => {
         let lastDue = '-';
         if (Array.isArray(member.payments) && member.payments.length > 0) {
