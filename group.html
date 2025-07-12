@@ -82,12 +82,26 @@
     <div class="summary" id="groupSummary" style="display: none">
       <h3>📌 Group Summary</h3>
       <p><strong>Total Members:</strong> <span id="totalMembers"></span></p>
+
       <table id="monthlyTable">
         <thead>
           <tr>
             <th>Month</th>
             <th>Amount</th>
             <th>Total Collected</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+
+      <h3>💰 Chits Given</h3>
+      <table id="chitTable">
+        <thead>
+          <tr>
+            <th>Due</th>
+            <th>Member</th>
+            <th>Amount</th>
+            <th>Date</th>
           </tr>
         </thead>
         <tbody></tbody>
@@ -128,10 +142,12 @@
       const groupId = document.getElementById('groupSelect').value;
       const tbody = document.querySelector('#groupDetails tbody');
       const monthlyTableBody = document.querySelector('#monthlyTable tbody');
+      const chitBody = document.querySelector('#chitTable tbody');
       const summaryBox = document.getElementById('groupSummary');
       const totalMembers = document.getElementById('totalMembers');
       tbody.innerHTML = '';
       monthlyTableBody.innerHTML = '';
+      chitBody.innerHTML = '';
       summaryBox.style.display = 'none';
 
       const group = data.groups.find(g => g.id === groupId);
@@ -140,6 +156,7 @@
       totalMembers.textContent = group.members.length;
       summaryBox.style.display = 'block';
 
+      // Monthly Table
       if (Array.isArray(group.monthlyAmounts)) {
         group.monthlyAmounts.forEach((amt, i) => {
           let collected = 0;
@@ -162,6 +179,22 @@
         });
       }
 
+      // Chits Given Table
+      if (Array.isArray(group.chitsGiven)) {
+        group.chitsGiven.forEach(chit => {
+          const member = group.members.find(m => m.id === chit.memberId);
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>Due ${chit.due}</td>
+            <td>${member ? member.name : 'Unknown'}</td>
+            <td>₹${chit.amount}</td>
+            <td>${chit.date}</td>
+          `;
+          chitBody.appendChild(row);
+        });
+      }
+
+      // Member Details
       group.members.forEach(member => {
         let lastDue = '-';
         if (Array.isArray(member.payments) && member.payments.length > 0) {
