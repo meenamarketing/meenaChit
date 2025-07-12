@@ -86,7 +86,6 @@
       border-radius: 6px;
       max-height: 150px;
       overflow-y: auto;
-      margin-top: -0.5rem;
       position: absolute;
       width: calc(100% - 2rem);
       z-index: 10;
@@ -97,6 +96,22 @@
     }
     .suggestions div:hover {
       background-color: #333;
+    }
+    #selectedMembers li {
+      margin: 0.3rem 0;
+      background: #1e1e1e;
+      padding: 0.5rem;
+      border-radius: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    #selectedMembers button {
+      background: transparent;
+      border: none;
+      color: #f66;
+      font-size: 1rem;
+      cursor: pointer;
     }
     footer {
       text-align: center;
@@ -124,11 +139,11 @@
       <option value="">-- Select Group --</option>
     </select>
 
-    <label>Month</label>
-    <input type="number" id="chitMonth" min="1" placeholder="e.g., 1 for January" />
+    <label>Due Number (Month)</label>
+    <input type="number" id="chitMonth" min="1" placeholder="e.g., 1" />
 
-    <label>Search & Select Member(s)</label>
-    <input type="text" id="memberSearch" placeholder="Type to search member...">
+    <label>Search Member(s)</label>
+    <input type="text" id="memberSearch" placeholder="Type to search..." />
     <div id="suggestions" class="suggestions"></div>
 
     <label>Selected Members</label>
@@ -145,8 +160,8 @@
     <table id="chitTable">
       <thead>
         <tr>
-          <th>Month</th>
-          <th>Chit Holder(s)</th>
+          <th>Due</th>
+          <th>Member(s)</th>
           <th>Amount</th>
           <th>Date</th>
         </tr>
@@ -166,12 +181,13 @@
       const raw = localStorage.getItem('chitData');
       if (raw) {
         data = JSON.parse(raw);
-        const groupSelect = document.getElementById('groupSelect');
+        const select = document.getElementById('groupSelect');
+        select.innerHTML = '<option value="">-- Select Group --</option>';
         data.groups.forEach(group => {
           const option = document.createElement('option');
           option.value = group.id;
           option.textContent = group.name;
-          groupSelect.appendChild(option);
+          select.appendChild(option);
         });
       }
     }
@@ -180,25 +196,24 @@
       const groupId = document.getElementById('groupSelect').value;
       const tbody = document.querySelector('#chitTable tbody');
       tbody.innerHTML = '';
-
       selectedGroup = data.groups.find(g => g.id === groupId);
       selectedMembers = [];
       updateSelectedList();
 
       if (!selectedGroup) return;
-      if (!selectedGroup.chits) selectedGroup.chits = [];
+      if (!selectedGroup.chitsGiven) selectedGroup.chitsGiven = [];
 
-      selectedGroup.chits.forEach((chit, i) => {
-        const tr = document.createElement('tr');
-        const holders = chit.members.map(id => {
-          const m = selectedGroup.members.find(mem => mem.id === id);
-          return m ? m.name : 'Unknown';
+      selectedGroup.chitsGiven.forEach(chit => {
+        const names = chit.members.map(id => {
+          const mem = selectedGroup.members.find(m => m.id === id);
+          return mem ? mem.name : "Unknown";
         }).join(', ');
+        const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td>${i + 1}</td>
-          <td>${holders}</td>
+          <td>${chit.due}</td>
+          <td>${names}</td>
           <td>₹${chit.amount}</td>
-          <td>${chit.date || '-'}</td>
+          <td>${chit.date}</td>
         `;
         tbody.appendChild(tr);
       });
@@ -207,14 +222,17 @@
     function updateSelectedList() {
       const ul = document.getElementById('selectedMembers');
       ul.innerHTML = '';
-      selectedMembers.forEach(id => {
-        const member = selectedGroup.members.find(m => m.id === id);
-        if (member) {
-          const li = document.createElement('li');
-          li.textContent = member.name;
-          ul.appendChild(li);
-        }
+      selectedMembers.forEach((id, i) => {
+        const mem = selectedGroup.members.find(m => m.id === id);
+        const li = document.createElement('li');
+        li.innerHTML = `${mem.name} <button onclick="removeMember(${i})">✖</button>`;
+        ul.appendChild(li);
       });
+    }
+
+    function removeMember(index) {
+      selectedMembers.splice(index, 1);
+      updateSelectedList();
     }
 
     document.getElementById('memberSearch').addEventListener('input', function () {
@@ -223,48 +241,48 @@
     });
 
     function updateSuggestions(val = '') {
-      const suggestions = document.getElementById('suggestions');
-      suggestions.innerHTML = '';
-
+      const div = document.getElementById('suggestions');
+      div.innerHTML = '';
       if (!selectedGroup || !val) return;
 
-      selectedGroup.members.forEach(member => {
-        if (member.name.toLowerCase().includes(val) && !selectedMembers.includes(member.id)) {
-          const div = document.createElement('div');
-          div.textContent = member.name;
-          div.onclick = () => {
-            selectedMembers.push(member.id);
-            updateSelectedList();
+      selectedGroup.members.forEach(m => {
+        if (m.name.toLowerCase().includes(val) && !selectedMembers.includes(m.id)) {
+          const item = document.createElement('div');
+          item.textContent = m.name;
+          item.onclick = () => {
+            selectedMembers.push(m.id);
             document.getElementById('memberSearch').value = '';
-            suggestions.innerHTML = '';
+            div.innerHTML = '';
+            updateSelectedList();
           };
-          suggestions.appendChild(div);
+          div.appendChild(item);
         }
       });
     }
 
     function saveChitEntry() {
       const groupId = document.getElementById('groupSelect').value;
-      const month = parseInt(document.getElementById('chitMonth').value);
+      const due = parseInt(document.getElementById('chitMonth').value);
       const amount = parseInt(document.getElementById('chitAmount').value);
       const date = document.getElementById('chitDate').value;
 
-      if (!groupId || !month || selectedMembers.length === 0 || !amount || !date) {
-        alert("❌ Please fill all chit details.");
+      if (!groupId || !due || !amount || !date || selectedMembers.length === 0) {
+        alert("❌ Please fill all fields and select members.");
         return;
       }
 
       const group = data.groups.find(g => g.id === groupId);
-      if (!group.chits) group.chits = [];
+      if (!group.chitsGiven) group.chitsGiven = [];
 
-      group.chits[month - 1] = {
-        members: selectedMembers,
+      group.chitsGiven.push({
+        due,
+        members: [...selectedMembers],
         amount,
         date
-      };
+      });
 
       localStorage.setItem('chitData', JSON.stringify(data));
-      alert("✅ Chit saved successfully.");
+      alert("✅ Chit saved!");
       renderChitStatus();
     }
 
