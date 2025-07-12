@@ -22,7 +22,7 @@
     .container {
       padding: 1rem;
     }
-    select, input, button {
+    select, button {
       width: 100%;
       margin-top: 1rem;
       padding: 0.75rem;
@@ -129,6 +129,7 @@
       if (raw) {
         data = JSON.parse(raw);
         const select = document.getElementById('groupSelect');
+        select.innerHTML = '<option value="">-- Select Group --</option>';
         data.groups.forEach(group => {
           const option = document.createElement('option');
           option.value = group.id;
@@ -145,6 +146,7 @@
       const chitBody = document.querySelector('#chitTable tbody');
       const summaryBox = document.getElementById('groupSummary');
       const totalMembers = document.getElementById('totalMembers');
+
       tbody.innerHTML = '';
       monthlyTableBody.innerHTML = '';
       chitBody.innerHTML = '';
@@ -194,7 +196,7 @@
         });
       }
 
-      // Member Details
+      // Member Last Paid Due Table
       group.members.forEach(member => {
         let lastDue = '-';
         if (Array.isArray(member.payments) && member.payments.length > 0) {
