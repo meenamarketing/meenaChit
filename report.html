@@ -1,10 +1,10 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html><html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Reports – Meena Chitfunds</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
@@ -59,20 +59,6 @@
       border-radius: 8px;
       color: #fff;
     }
-    .suggestions {
-      background: #1c1c1c;
-      border: 1px solid #333;
-      border-radius: 6px;
-      max-height: 150px;
-      overflow-y: auto;
-    }
-    .suggestions div {
-      padding: 0.5rem;
-      cursor: pointer;
-    }
-    .suggestions div:hover {
-      background: #333;
-    }
     table {
       width: 100%;
       border-collapse: collapse;
@@ -86,9 +72,6 @@
     th {
       background: #1f1f1f;
       color: #00e6e6;
-    }
-    tr.unpaid {
-      background: #2a1a1a;
     }
     .export-btn {
       background: #2a2a2a;
@@ -104,15 +87,6 @@
     .export-btn:hover {
       background: #333;
     }
-    .payments table {
-      width: 100%;
-      margin-top: 0.5rem;
-      font-size: 0.9rem;
-    }
-    .payments th, .payments td {
-      border: 1px solid #444;
-      padding: 0.4rem;
-    }
     #chartSection {
       margin-top: 2rem;
       background: #1c1c1c;
@@ -121,15 +95,6 @@
     }
     canvas {
       max-width: 100%;
-    }
-    .whatsapp-btn {
-      background-color: #25D366;
-      color: #fff;
-      border: none;
-      padding: 0.4rem 0.8rem;
-      border-radius: 5px;
-      cursor: pointer;
-      margin-left: 5px;
     }
     footer {
       text-align: center;
@@ -142,53 +107,22 @@
     }
   </style>
 </head>
-<body>
-
-<header>📊 Group Reports – Meena Chitfunds</header>
-
-<nav>
+<body><header>📊 Group Reports – Meena Chitfunds</header><nav>
   <button onclick="location.href='index.html'">🏠 Dashboard</button>
   <button onclick="location.href='add-group.html'">➕ Add Group</button>
   <button onclick="location.href='add-member.html'">👤 Add Member</button>
   <button onclick="location.href='add-payment.html'">💸 Add Payment</button>
-</nav>
-
-<div class="container">
+</nav><div class="container">
   <label>Select Group</label>
-  <select id="groupSelect" onchange="renderTable(); renderChart();">
+  <select id="groupSelect" onchange="renderChart()">
     <option value="">-- Select Group --</option>
-  </select>
-
-  <label>Search Member</label>
-  <input type="text" id="searchInput" placeholder="Start typing name..." oninput="renderSuggestions()" />
-  <div class="suggestions" id="suggestions"></div>
-
-  <table id="reportTable">
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Phone</th>
-        <th>Place</th>
-        <th>Last Due</th>
-        <th>Total Paid</th>
-        <th>Unpaid?</th>
-        <th>📤</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-
-  <button class="export-btn" onclick="exportPDF()">📤 Export Full Group as PDF</button>
+  </select><button class="export-btn" onclick="exportPDF()">📤 Export PDF Report</button>
 
   <div id="chartSection">
     <h3>📈 Group Payment Overview</h3>
     <canvas id="groupChart"></canvas>
   </div>
-</div>
-
-<footer>Powered by Goorac · Meena Chitfunds</footer>
-
-<script>
+</div><footer>Powered by Goorac · Meena Chitfunds</footer><script>
   let data = { groups: [] };
 
   function loadGroups() {
@@ -203,74 +137,6 @@
         select.appendChild(option);
       });
     }
-  }
-
-  function renderSuggestions() {
-    const groupId = document.getElementById('groupSelect').value;
-    const group = data.groups.find(g => g.id === groupId);
-    const input = document.getElementById('searchInput').value.toLowerCase();
-    const suggestionBox = document.getElementById('suggestions');
-    suggestionBox.innerHTML = '';
-    if (!group || !input) return;
-    group.members.filter(m => m.name.toLowerCase().includes(input)).forEach(member => {
-      const div = document.createElement('div');
-      div.textContent = member.name;
-      div.onclick = () => {
-        document.getElementById('searchInput').value = member.name;
-        suggestionBox.innerHTML = '';
-        renderTable();
-      };
-      suggestionBox.appendChild(div);
-    });
-  }
-
-  function renderTable() {
-    const groupId = document.getElementById('groupSelect').value;
-    const search = document.getElementById('searchInput').value.toLowerCase();
-    const tbody = document.querySelector('#reportTable tbody');
-    tbody.innerHTML = '';
-
-    const group = data.groups.find(g => g.id === groupId);
-    if (!group || !group.members) return;
-
-    const totalMonths = group.totalMonths || 20;
-
-    group.members.filter(m => m.name.toLowerCase().includes(search)).forEach(member => {
-      const lastDue = (member.payments || []).length > 0 ? member.payments[member.payments.length - 1].due : 0;
-      const totalPaid = (member.amountPaid || 0) + (member.payments || []).reduce((sum, p) => sum + p.amount, 0);
-      const unpaid = (member.payments || []).length < totalMonths;
-
-      const tr = document.createElement('tr');
-      if (unpaid) tr.classList.add('unpaid');
-      tr.innerHTML = `
-        <td>${member.name}</td>
-        <td>${member.phone || '-'}</td>
-        <td>${member.place || '-'}</td>
-        <td>${lastDue}</td>
-        <td>₹${totalPaid}</td>
-        <td>${unpaid ? '✅' : '❌'}</td>
-        <td><button class="whatsapp-btn" onclick="sendWhatsApp('${member.name}', '${member.phone}', ${totalPaid})">Send</button></td>
-      `;
-      tbody.appendChild(tr);
-
-      if (member.payments && member.payments.length > 0) {
-        const paymentsTr = document.createElement('tr');
-        paymentsTr.innerHTML = `
-          <td colspan="7">
-            <div class="payments">
-              <strong>Payment History</strong>
-              <table>
-                <thead><tr><th>Name</th><th>Due #</th><th>Amount</th><th>Date</th></tr></thead>
-                <tbody>
-                  ${member.payments.map(p => `<tr><td>${member.name}</td><td>${p.due}</td><td>₹${p.amount}</td><td>${p.date || '-'}</td></tr>`).join('')}
-                </tbody>
-              </table>
-            </div>
-          </td>
-        `;
-        tbody.appendChild(paymentsTr);
-      }
-    });
   }
 
   function renderChart() {
@@ -306,31 +172,58 @@
   }
 
   function exportPDF() {
-    const groupName = document.getElementById('groupSelect').selectedOptions[0]?.text || 'Report';
+    const groupId = document.getElementById('groupSelect').value;
+    const group = data.groups.find(g => g.id === groupId);
+    if (!group) return;
+
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
-    doc.setFontSize(14);
-    doc.text(`Meena Chitfunds – Group Report: ${groupName}`, 10, 10);
+    const totalMonths = group.monthlyAmounts?.length || group.totalMonths || 20;
 
-    let y = 20;
-    const rows = document.querySelectorAll('#reportTable tbody tr');
-    rows.forEach(row => {
-      const text = row.textContent.trim();
-      doc.text(text, 10, y);
-      y += 8;
+    doc.setFontSize(18);
+    doc.text("Meena Chitfunds", 14, 14);
+    doc.setFontSize(12);
+    doc.text(`Group: ${group.name}`, 14, 22);
+    doc.text(`Exported: ${new Date().toLocaleString()}`, 14, 28);
+
+    const tableHead = [["Name", "Phone", "Place", "Paid (₹)", "Remaining (₹)", "Last Due", "Status"]];
+    const tableBody = [];
+
+    group.members.forEach(member => {
+      const totalPaid = (member.amountPaid || 0) + (member.payments || []).reduce((s, p) => s + p.amount, 0);
+      const lastDue = member.payments?.length > 0 ? member.payments[member.payments.length - 1].due : 0;
+      const expected = group.monthlyAmounts?.slice(0, totalMonths).reduce((a, b) => a + b, 0) || 0;
+      const remaining = expected - totalPaid;
+
+      tableBody.push([
+        member.name,
+        member.phone || '-',
+        member.place || '-',
+        `₹${totalPaid}`,
+        `₹${remaining < 0 ? 0 : remaining}`,
+        lastDue || '-',
+        remaining > 0 ? 'Unpaid' : 'Paid'
+      ]);
     });
-    doc.save(`${groupName}_Report.pdf`);
-  }
 
-  function sendWhatsApp(name, phone, amount) {
-    if (!phone) return alert('Phone number not available');
-    const message = `Hi ${name},\nYour current total paid in Meena Chitfunds is ₹${amount}.\nKeep tracking your payments.`;
-    const url = `https://wa.me/91${phone}?text=${encodeURIComponent(message)}`;
-    window.open(url, '_blank');
+    doc.autoTable({
+      startY: 32,
+      head: tableHead,
+      body: tableBody,
+      styles: {
+        fontSize: 10,
+        cellPadding: 3,
+        fillColor: [30, 30, 30],
+        textColor: 255,
+        lineColor: [70, 70, 70]
+      },
+      headStyles: { fillColor: [0, 188, 212] },
+      alternateRowStyles: { fillColor: [18, 18, 18] },
+    });
+
+    doc.save(`MeenaChitfunds_${group.name}_Report.pdf`);
   }
 
   loadGroups();
-</script>
-
-</body>
+</script></body>
 </html>
