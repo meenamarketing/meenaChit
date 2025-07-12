@@ -47,12 +47,12 @@
     .container {
       padding: 1rem;
     }
-    label, select, input {
+    label, select {
       display: block;
       width: 100%;
       margin: 1rem 0 0.5rem;
     }
-    select, input {
+    select {
       padding: 0.7rem;
       background: #1e1e1e;
       border: 1px solid #333;
@@ -73,7 +73,7 @@
       background: #1f1f1f;
       color: #00e6e6;
     }
-    .export-btn {
+    .export-btn, .member-export-btn {
       background: #2a2a2a;
       color: #00e6e6;
       border: none;
@@ -84,7 +84,7 @@
       cursor: pointer;
       font-weight: bold;
     }
-    .export-btn:hover {
+    .export-btn:hover, .member-export-btn:hover {
       background: #333;
     }
     #chartSection {
@@ -116,7 +116,9 @@
   <label>Select Group</label>
   <select id="groupSelect" onchange="renderChart()">
     <option value="">-- Select Group --</option>
-  </select><button class="export-btn" onclick="exportPDF()">📤 Export PDF Report</button>
+  </select><label>Select Member</label> <select id="memberSelect"> <option value="">-- Select Member --</option> </select>
+
+<button class="member-export-btn" onclick="exportMemberPDF()">📤 Export Member PDF</button> <button class="export-btn" onclick="exportGroupPDF()">📄 Export Group PDF</button>
 
   <div id="chartSection">
     <h3>📈 Group Payment Overview</h3>
@@ -129,12 +131,12 @@
     const raw = localStorage.getItem('chitData');
     if (raw) {
       data = JSON.parse(raw);
-      const select = document.getElementById('groupSelect');
+      const groupSelect = document.getElementById('groupSelect');
       data.groups.forEach(group => {
         const option = document.createElement('option');
         option.value = group.id;
         option.textContent = group.name;
-        select.appendChild(option);
+        groupSelect.appendChild(option);
       });
     }
   }
@@ -142,12 +144,20 @@
   function renderChart() {
     const groupId = document.getElementById('groupSelect').value;
     const group = data.groups.find(g => g.id === groupId);
+    const memberSelect = document.getElementById('memberSelect');
+    memberSelect.innerHTML = '<option value="">-- Select Member --</option>';
+
     if (!group || !group.members) return;
 
+    group.members.forEach(member => {
+      const opt = document.createElement('option');
+      opt.value = member.id;
+      opt.textContent = member.name;
+      memberSelect.appendChild(opt);
+    });
+
     const labels = group.members.map(m => m.name);
-    const totals = group.members.map(m =>
-      (m.amountPaid || 0) + (m.payments || []).reduce((sum, p) => sum + p.amount, 0)
-    );
+    const totals = group.members.map(m => (m.amountPaid || 0) + (m.payments || []).reduce((s, p) => s + p.amount, 0));
 
     const ctx = document.getElementById('groupChart').getContext('2d');
     if (window.chartInstance) window.chartInstance.destroy();
@@ -171,7 +181,7 @@
     });
   }
 
-  function exportPDF() {
+  function exportGroupPDF() {
     const groupId = document.getElementById('groupSelect').value;
     const group = data.groups.find(g => g.id === groupId);
     if (!group) return;
@@ -222,6 +232,45 @@
     });
 
     doc.save(`MeenaChitfunds_${group.name}_Report.pdf`);
+  }
+
+  function exportMemberPDF() {
+    const groupId = document.getElementById('groupSelect').value;
+    const memberId = document.getElementById('memberSelect').value;
+    const group = data.groups.find(g => g.id === groupId);
+    if (!group) return;
+    const member = group.members.find(m => m.id === memberId);
+    if (!member) return;
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    doc.setFontSize(18);
+    doc.text("Meena Chitfunds", 14, 14);
+    doc.setFontSize(12);
+    doc.text(`Group: ${group.name}`, 14, 22);
+    doc.text(`Member: ${member.name}`, 14, 28);
+    doc.text(`Exported: ${new Date().toLocaleString()}`, 14, 34);
+
+    const tableHead = [["Due", "Amount", "Date"]];
+    const tableBody = (member.payments || []).map(p => [p.due, `₹${p.amount}`, p.date || '-']);
+
+    doc.autoTable({
+      startY: 40,
+      head: tableHead,
+      body: tableBody,
+      styles: {
+        fontSize: 10,
+        cellPadding: 3,
+        fillColor: [30, 30, 30],
+        textColor: 255,
+        lineColor: [70, 70, 70]
+      },
+      headStyles: { fillColor: [0, 188, 212] },
+      alternateRowStyles: { fillColor: [18, 18, 18] },
+    });
+
+    doc.save(`${member.name}_Payments.pdf`);
   }
 
   loadGroups();
